@@ -2,13 +2,13 @@ const jwt = require("jsonwebtoken");
 const StudentModel = require("../models/students.model");
 const bcrypt = require("bcrypt");
 
-const createToken = async (request, response) => {
+const createToken = async (_request, response) => {
     try {
         // jwt -> header.payload.signature -> 
         const token = jwt.sign({ sub: "testing" }, "sjhdgf874y873yhirwiuerhi", {
             expiresIn: 10
         })
-        return response.status(200).send({ token })
+        return response.status(200).send({ token });
     } catch (error) {
         return response.status(500).send({ message: error.message || "Some error occurred" })   
     }
@@ -42,7 +42,7 @@ const studentSignup = async (request, response) => {
         if(!email || !fullName || !studentId || !password) {
             return response.status(400).send({
                 message: "All fields are required"
-            })    
+            });    
         }
         // complete: validate using regex
         const student = await StudentModel.findOne({ $or: [{ email }, { student_id: studentId }] });
@@ -61,7 +61,8 @@ const studentSignup = async (request, response) => {
         const userObj = {
             student_id: studentId,
             email,
-            name: fullName
+            name: fullName,
+            password
         }
         userObj.password = await bcrypt.hash(password, 10);
         const user = await StudentModel.create(userObj);
@@ -70,20 +71,52 @@ const studentSignup = async (request, response) => {
                 message: "Some error occurred"
             })
         }
-        const token = jwt.sign({ sub: { id: user.student_id } }, process.env.JWT_PRIVATE_KEY, {
-            expiresIn: 3600 // in seconds
-        });
         return response.status(200).send({
             message: "User created successfully",
-            token
         })
     } catch (err) {
-        console.log(err);
-        
         return response.status(500).send({
             message: err.message || "Some error occurred"
         })
     }
 }
 
-module.exports = { createToken, verifyToken, studentSignup }
+const studentLogin = async (request, response) => {
+    try {
+        const { email, password } = request.body;
+        // complete validation
+        const student = await StudentModel.findOne({ email });
+        if (!student) {
+            return response.status(404).send({
+                message: "Student not found!"
+            })
+        }
+        const isMatched = await bcrypt.compare(password, student.password);
+        if (!isMatched) {
+            return response.status(400).send({
+                message: "Invalid credentials"
+            })
+        }
+        const token = jwt.sign({
+            student: {
+                id: student.student_id
+            }
+        }, process.env.JWT_PRIVATE_KEY, {
+            expiresIn: 3600 // 1hr in seconds
+        })
+        return response.status(200).send({
+            message: "Login success",
+            token
+        })
+    } catch (err) {
+        return response.status(500).send({
+            message: err.message || "Internal server error"
+        })
+    }
+}
+
+const testFunc = async (request, response) => {
+    return response.status(200).send({ message: "SUCCESS" });
+}
+
+module.exports = { createToken, verifyToken, studentSignup, studentLogin, testFunc }

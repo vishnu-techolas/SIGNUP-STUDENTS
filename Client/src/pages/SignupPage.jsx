@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { User, Mail, Lock, GraduationCap, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import axios from 'axios';
+import toast from 'react-hot-toast';
+import { api } from '../../axios';
 
 export const StudentSignup = () => {
     const [formData, setFormData] = useState({
@@ -23,11 +25,12 @@ export const StudentSignup = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post(`http://localhost:8000/auth/signup`, formData);
+            const response = await api.post(`/auth/signup`, formData);
             const token = response.data.token;
             document.cookie = `MSKEY=${token};`
+            return toast.success("Account created successfully");
         } catch (err) {
-            return console.log(err.response.data.message);
+            return toast.error(err.response?.data.message);
         }
     };
 

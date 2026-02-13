@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Lock, LogIn, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import toast from 'react-hot-toast';
+import axios from 'axios';
+import { getCookie, setCookie } from '../../lib/cookie';
+import { api } from '../../axios';
 
 export const StudentLogin = () => {
     const [loginData, setLoginData] = useState({
@@ -22,9 +26,18 @@ export const StudentLogin = () => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Login Attempt:", loginData);
+        try {
+            const response = await api.post("/auth/login", loginData);
+            const token = response.data.token;
+            setCookie(token);
+            console.log(getCookie())
+            toast.success("Login success");
+            return redirect("/")
+        } catch (err) {
+            return toast.error(err.response?.data.message || err.message || "Login error");
+        }
     };
 
     return <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
